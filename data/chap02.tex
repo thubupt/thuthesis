@@ -34,7 +34,7 @@ Kuzmanovic.A\cite{Kuzmanovic2006Low}也使用对TCP中RTO参数进行随机化�
 
 
 \section{SDN中DoS攻击的防御方案}
-SDN作为一个新型网络，给DoS攻击的防御工作提供了新的思路，打破了之前的DoS攻击防御的限制，使用SDN的特性，采用新的方案更加有效的对LDoS攻击进行防御。很多方案\cite{b9, b16, b10}都对DoS攻击的防御有极好的效果。也有不少防御方案\cite{b10, b12, b13, b15, b18,wang2015floodguard,zhang2017ftguard}被提出来防御SDN中的消耗控制平面的带宽、计算资源和流表资源的DoS攻击\cite{shin2013avant,cao2017disrupting}。
+SDN作为一个新型网络，给DoS攻击的防御工作提供了新的思路，打破了之前的DoS攻击防御的限制，使用SDN的特性，采用新的方案更加有效的对LDoS攻击进行防御。很多方案\cite{b9, b16, b10}都对DoS攻击的防御有极好的效果。也有不少防御方案\cite{b10, b12, b13, b15, b18,wang2015floodguard,zhang2017ftguard}被提出来防御SDN中的消耗控制平面的带宽、计算资源和流表资源的DoS攻击\cite{shin2013avant,cao2017disrupting}。不过，目前的防御方案并不能很好的对LDoS攻击进行有效的防御。
 
 
 Fayaz.S.K\cite{b9}提出了Bohatei，该方案能够灵活的防御多种知名的DDoS攻击，例如SYN Flood攻击， DNS放大攻击和UDP Flood攻击。该方案使用基于标签的转发来设计了网络方案，避免了现有的SDN解决方案的缺陷。同时，使用了适应性的策略来灵活处理随时间改变的DDoS混合攻击。
