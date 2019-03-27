@@ -78,8 +78,10 @@ TCP的发送端维持两个两个变量，平滑往返时间（Smoothed Round-Tr
 
 
 \section{LDoS攻击模型}
-\label{LDoS-model}
-LDoS攻击形式需要一定的稳定性，不能因为偶尔出现的特殊情况就失去效果，考虑到这一点，使用周期性的的“方波”作为LDoS攻击的基础形式能够获得比较好的效果，如图\ref{fig:LDoS}所示。其中，攻击者可以通过发送周期为$T$，每次突发持续时间为$L$，速率为$R$的LDoS攻击流来对TCP流进行攻击。不过，想要LDoS攻击对TCP流有效果是需要满足一定的条件的。首先，速率$R$必须足够大来引起丢包，也就是说，$R$与其他的流量混合起来一定要超过链路容量。其次，突发持续时间$L$必须足够长来引起丢包，但是也要足够短来避免检测。还有周期$T$也要与RTO成比例关系，这样当TCP流想要退出超时重传状态的时候，就不得不丢包，从而保持超时重传状态。
+\label{chap3:LDoS-model}
+LDoS攻击形式需要一定的稳定性，不能因为偶尔出现的特殊情况就失去效果，考虑到这一点，使用周期性的的“方波”作为LDoS攻击的基础形式能够获得比较好的效果，如图\ref{fig:LDoS}所示。其中，攻击者可以通过发送周期为$T$，每次突发持续时间为$L$，速率为$R$的LDoS攻击流来对TCP流进行攻击。此时，可以用三个参数（$T$，$L$，$R$）来描述LDoS攻击流。使用$\eta$来表示$\frac{L}{T}$的比值。
+
+在这里，先以超时重传机制作为目标，分析LDoS攻击模型。LDoS攻击迫使TCP流进入超时重传状态是需要满足一定的条件的。首先，速率$R$必须足够大来引起丢包，也就是说，$R$与其他的流量混合起来一定要超过链路容量。其次，突发持续时间$L$必须足够长来引起丢包，但是也要足够短来避免检测。RTO计时器的初始值必须是周期$T$整数倍。
 
 \begin{figure}
     \centering
@@ -88,13 +90,21 @@ LDoS攻击形式需要一定的稳定性，不能因为偶尔出现的特殊情�
     \label{fig:LDoS}
 \end{figure}
 
-前面讨论了针对一条攻击流的考虑LDoS攻击的情景，我们可以得到LDoS攻击模型，如图\ref{fig:model}所示，n条拥有不同RTT的TCP流和一条LDoS攻击流通过一个瓶颈队列。将RTT$_{i}$标记为第i条TCP流的RTT，其中i=1，…，$n$。LDoS攻击起效需要满足下面的条件：
+前面讨论了针对一条攻击流的考虑LDoS攻击的情景，可以得到LDoS攻击模型，如图\ref{fig:model}所示，n条拥有不同RTT的TCP流和一条LDoS攻击流通过一个瓶颈队列。将RTT$_{i}$标记为第i条TCP流的RTT，其中i=1，…，$n$。LDoS攻击起效需要满足下面的条件：
 \begin{itemize}
     \item 突发持续时间$L \geq RTT_i $
     \item minRTO > SRTT$_i$ + 4*RTTVAR$_i$
 \end{itemize}
 
-通过之前的分析可以得出一个结论，周期性的高速突发能够创造一段“停滞”状态，在这种状态下，丢包率很高，如果这种状态维持的时间超过RTT的时间规模，即$L \geq RTT_i$，对i=1，…，$n$，则由LDoS的攻击突发引起的拥塞将维持足够长的时间来迫使所有的TCP流进入超时重传状态。除此之外，当且仅当minRTO > SRTT$_i$ + 4*RTTVAR$_i$的时候，则所有TCP流的RTO计时器的值就会统一为minRTO，这样攻击者就能够知道TCP流的RTO计时器的值。在这种情况下，我们能够排除影响LDoS攻击的两个重要的问题，第一个问题是不同的TCP流RTT不同；第二个问题是不同的TCP流RTO计时器的值不同的问题。这样，LDoS攻击就能够对满足这两个条件的TCP流进行攻击。
+通过之前的分析可以得出一个结论，周期性的高速突发能够创造一段“停滞”状态，在这种状态下，丢包率很高，如果这种状态维持的时间超过RTT的时间规模，即$L \geq RTT_i$，则由LDoS的攻击突发引起的拥塞将维持足够长的时间来迫使所有的TCP流进入超时重传状态。除此之外，当且仅当minRTO > SRTT$_i$ + 4*RTTVAR$_i$的时候，则所有TCP流的RTO计时器的值就会统一为minRTO，这样攻击者就能够知道TCP流的RTO计时器的值。在这种情况下，能够排除影响LDoS攻击的两个重要的问题，第一个问题是不同的TCP流RTT不同；第二个问题是不同的TCP流RTO计时器的值不同的问题。这样，LDoS攻击就能够对满足这两个条件的TCP流进行攻击。
+
+
+% 接下来，考虑如果有TCP流不满足上述两个条件其中任何一个甚至两个都不满足，LDoS攻击的效果就会不一样。如果一些TCP流只有一部分满足上面两个条件，则他们的吞吐量将会降低至近乎为0的程度，而不满足上述条件的则吞吐量下降，下降的之后的标准化吞吐量由公式\ref{equ:thputsurvive}来描述。
+
+% \begin{equation}
+%     \label{equ:thputsurvive}
+%     NT = \frac{\lceil \frac{minRTO}{T}\rceil T - minRTO}{T}.
+% \end{equation}
 
 \begin{figure}
     \centering
@@ -103,10 +113,21 @@ LDoS攻击形式需要一定的稳定性，不能因为偶尔出现的特殊情�
     \label{fig:model}
 \end{figure}
 
-接下来，考虑如果有TCP流不满足上述两个条件其中任何一个甚至两个都不满足，LDoS攻击的效果就会不一样。如果一些TCP流只有一部分满足上面两个条件，则他们的吞吐量将会降低至近乎为0的程度，而不满足上述条件的则吞吐量下降，下降的之后的标准化吞吐量由公式\ref{equ:thputsurvive}来描述。
+\section{各种类型的LDoS攻击}
+\label{chap3:LDoStypes}
+在LDoS攻击的基础形式被提出来之后，各种各种类型LDoS攻击被提出来，根据目标的不同设定相应的参数能达到不同的攻击效果，例如基于超时重传机制的LDoS就能够迫使TCP流不断地进入超时重传机制，基于TCP的和式增加，积式减少（Additive Increase Multiplicative Decrease，AIMD）机制的LDoS能够迫使TCP流频繁地进入快恢复的状态。
 
-\begin{equation}
-    \label{equ:thputsurvive}
-    NT = \frac{\lceil \frac{minRTO}{T}\rceil T - minRTO}{T}.
-\end{equation}
+根据Luo.X\cite{Luo2005OnAN}提出的方案，有两种LDoS攻击类型，第一种LDoS攻击可以继续利用超时重传机制降低TCP流的吞吐量。第二种LDoS攻击利用TCP的AIMD机制来降低TCP流的吞吐流量。第一种LDoS攻击同样需要图\ref{fig:LDoS}作为基础模型，$R$需要达到足够引起丢包，$L$需要长到引发ACK包丢失，$T$设定为比minRTO的值大一些。这样的LDoS攻击能够让TCP大部分的时间处于超时重传状态中，TCP流吞吐量依然降低了，但是并不能到近乎为0的程度。该方案的RTO计时器变化曲线如图\ref{fig:rto-timer-1}所示。由于该方案不需要与minRTO成倍数关系，所以比较好实现。第二种LDoS攻击是利用AIMD机制完成攻击。通常的AIMD算法中，如果某一TCP流的滑动窗口大小为W，则由于一次短时间的高速突发引起该TCP流的数据包丢失，但是相应的ACK数据包到达了发送端，则TCP流不会进入超时重传状态，而TCP流的滑动窗口会下降至W/2。从此之后，该TCP流的滑动窗口大小每个RTT都增长1。针对TCP的AIMD机制的LDoS攻击同样被用来降低TCP流的吞吐量。攻击形式依然如图\ref{fig:LDoS}所示，相同的是$R$依然需要达到足够引起丢包，不同的是，$L$需要长到引发部分丢包即可，$T$可以设定为比较小的值这样，TCP流就会不断地减小滑动窗口大小。上述两种方式都能有效的降低TCP流的吞吐量。
 
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.75]{RTO_timer}
+    \caption{被新型利用超时重传机制的LDoS攻击的TCP流RTO计时器变化}
+    \label{fig:rto-timer-1}
+\end{figure}
+
+有文献\cite{Maci2007Evaluation}提出针对服务器队列的LDoS攻击。针对服务器的LDoS攻击首先对服务器进行洪泛攻击，让恶意请求使服务器的队列一处，然后，使用LDoS攻击形式去对服务器进行攻击，周期性的发送恶意请求给服务器，在每次预测到服务器的队列没有完全被使用的时候就在那段时间里不断发送请求给服务器，直到再次服务器队列再次溢出。攻击的周期为一个服务器接受请求到下发回复的时间长度。该类LDoS攻击通过消耗服务器的队列资源使服务器拒绝服务。
+
+也有研究\cite{b2}提出针对于BGP协议的LDoS攻击。由于BGP边界路由器之间使用TCP连接来交换可达性信息。此时，使用LDoS攻击来延迟BGP信息的交互，则两个BGP边界路由器之间会长时间无法通讯，这样会造成BGP的会话重置和延迟路由收敛，严重影响路由稳定性和网络可达性。
+
+\section{分布式LDoS攻击}
