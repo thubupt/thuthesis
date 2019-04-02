@@ -31,7 +31,7 @@
 	\end{tabular}
 \end{table}
 
-表\ref{table:meter}为SDN的Meter规则的主要内容。Meter Identifier是一个32比特的无符号整数，它能够用于唯一标识一个Meter规则。counters是统计与meter绑定的流表规则的统计相关数据，随时更新。其中，最重要的是Meter Bands，它是Meter规则控制和限制绑定聚合流的速率和处理包方式的的部分。需要注意的是，每个Meter规则可以匹配多个Meter Band。表\ref{table:meterbands}为一个Meter Band部分，它由五个部分组成，首先是Band Type部分，这直接定义了速率超过限定速率以后，后面的包是如何处理的。此处有两种选项：一种为丢弃，这样它该Meter规则就可以被用来限制速率；一种为增加数据包IP头中DSCP字段的丢弃优先级，可用于定义不同级别的服务。第二个参数是Meter规则限制的速率，它定义Meter规则最低适用的速率，若是速率高于该参数的数据包则需要根据Meter规则进行处理。Counters表示被该Meter Band处理的包的统计数据。Burst参数是本文需要调的一个重要参数，该参数定义了Meter Band的粒度。Type specific arguments表示band types有特殊的参数。
+表\ref{table:meter}为SDN的Meter规则的主要内容。Meter Identifier是一个32比特的无符号整数，它能够用于唯一标识一个Meter规则。counters是统计与meter绑定的流表规则的统计相关数据，随时更新。其中，最重要的是Meter Bands，它是Meter规则控制和限制绑定聚合流的速率和处理包方式的的部分。需要注意的是，每个Meter规则可以匹配多个Meter Band。表\ref{table:meterbands}为一个Meter Band部分，它由五个部分组成，首先是Band Type部分，这直接定义了速率超过限定速率以后，后面的包是如何处理的。此处有两种选项：一种为\emph{drop}，这样它该Meter规则就可以被用来限制速率；一种为\emph{dscp remark}，这样就能增加数据包IP头中DSCP字段的丢弃优先级，可用于定义不同级别的服务。第二个参数是Meter规则限制的速率，它定义Meter规则最低适用的速率，若是速率高于该参数的数据包则需要根据Meter规则进行处理。Counters表示被该Meter Band处理的包的统计数据。Burst参数是本文需要调的一个重要参数，该参数定义了Meter Band的粒度。Type specific arguments表示band types有特殊的参数。
 
 \begin{table}[htbp]
 	\centering  % 显示位置为中间
@@ -47,10 +47,10 @@
 	\end{tabular}
 \end{table}
 
-此方案使用Meter规则来实现对非TCP流的速率限制，这样就能够对LDoS攻击进行限制。但是，由于LDoS攻击具有一定的特殊性，普通配置Meter规则无法限制LDoS攻击，需要特殊的配置。首先，由于LDoS攻击会拥塞某个端口的队列，所以，对于每个激活的端口，都应当配置一个相应的Meter规则进行限制，对于从端口处发送非TCP数据的流表规则需要与该端口的Meter规则进行绑定，受该Meter规则的束缚。接下来，Meter规则的粒度也需要特殊的配置，默认的状态下，Meter规则是以1秒作为统计单位进行速率限制的，由于LDoS攻击的平均速率并不能满足Meter规则限制的需求，因此Meter Band设置的Burst参数需要重新配置。
+此方案使用Meter规则来实现对非TCP流的速率限制，这样就能够对LDoS攻击进行限制。但是，由于LDoS攻击具有一定的特殊性，普通配置Meter规则无法限制LDoS攻击，需要特殊的配置。首先，由于LDoS攻击会拥塞某个端口的队列，所以，对于每个激活的端口，都应当配置一个相应的Meter规则进行限制，对于从端口处发送非TCP数据的流表规则需要与该端口的Meter规则进行绑定，受该Meter规则的束缚。接下来，Meter规则的粒度也需要特殊的配置，默认的状态下，Meter规则是以1秒作为统计单位进行速率限制的，由于LDoS攻击的平均速率并不能满足Meter规则限制的需求，因此Meter Band设置的Burst参数需要重新配置。接下来，需要设置Rate参数的大小来限制非TCP聚合流的速率，设置的参数数值大了会影响其他正常流的速率，设置的值过小会使TCP流的窗口降至极小的程度，达不到限制LDoS攻击的效果。因此，该参数对窗口大小的影响非常重要。
 
 
-分析过之后，基于带宽保障的LDoS防御方案可以分为两个阶段完成。流程图如\ref{fig:meter-solution}所示第一部分为预配置Meter规则，控制器首先会检测所有激活端口，并给每个端口分配一个Meter规则，Meter规则需要调节Burst参数使得粒度在RTT尺寸大小，这样才能计算
+基于带宽保障的LDoS防御方案可以分为两个阶段完成。流程图如\ref{fig:meter-solution}所示。防御方案的第一阶段为预配置Meter规则阶段，控制器首先会检测所有激活端口，并给每个端口分配一个Meter规则，Meter规则需要调节Burst参数使得粒度在RTT级别大小，这样才能够有效的限制LDoS攻击的速率。其次，设置合理的Rate参数保证TCP流不进入超时重传机制的同时使滑动窗口不至于变得太小。设置Band Type为drop，这样就丢弃所有超速的包，可以保障了TCP流有一定的带宽可以使用。防御方案的第二个阶段为流处理阶段，有一个流进入交换机，则需要对该流进行区分处理。若是该流为TCP流，则该TCP流的流表不需要绑定任何Meter规则，这样它就不会被Meter规则所束缚，可以按照TCP拥塞控制的机制进行速率的控制。若是该流不是TCP流，则需要绑定Meter规则以保证该流不会对TCP流造成损害，特别是当该流为LDoS攻击流的时候，由于速率被控制，队列不会被该流所拥塞而造成TCP流丢包，TCP流就不会进入超时重传状态。
 
 \begin{figure}
     \centering
@@ -60,7 +60,9 @@
 \end{figure}
 
 
-
+\section{SDN中基于动态周期性检测的LDoS防御方案}
+\label{chap4:SoftGuard}
+为了保证SDN网络的正常传输，基于动态周期性检测的方案也被
 
 \begin{table}[htbp]
 	\centering  % 显示位置为中间
