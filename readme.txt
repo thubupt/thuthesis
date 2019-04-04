@@ -1,1 +1,2 @@
 注意一定要用正确配置的workspace
+复制fix.cls覆盖thuthesis.cls
