@@ -52,6 +52,7 @@
 
 基于带宽保障的LDoS防御方案可以分为两个模块完成。流程图如\ref{fig:meter-solution}所示。防御方案的第一模块为预配置Meter规则模块，控制器首先会检测所有激活端口，并给每个端口分配一个Meter规则，Meter规则需要调节Burst参数使得粒度在RTT级别大小，这样才能够有效的限制LDoS攻击的速率。其次，设置合理的Rate参数保证TCP流不进入超时重传机制的同时使滑动窗口不至于变得太小。设置Band Type为drop，这样就丢弃所有超速的包，可以保障了TCP流有一定的带宽可以使用。防御方案的第二个模块为流处理模块，有一个流进入交换机，则需要对该流进行区分处理。若是该流为TCP流，则该TCP流的流表不需要绑定任何Meter规则，这样它就不会被Meter规则所束缚，可以按照TCP拥塞控制的机制进行速率的控制。若是该流不是TCP流，则需要绑定Meter规则以保证该流不会对TCP流造成损害，特别是当该流为LDoS攻击流的时候，由于速率被控制，队列不会被该流所拥塞而造成TCP流丢包，TCP流就不会进入超时重传状态。
 
+
 %图 窗口与burst size的关系图，窗口与限制速率关系	有无防御机制吞吐量对比图
 
 \begin{figure}
@@ -66,7 +67,7 @@
 \label{chap4:SoftGuard}
 已有SDN防御方案无法对LDoS限制的时候，为了保证SDN网络的正常传输，本文提出了基于动态周期性检测的方案。作为一个基于SDN的轻量级防御方案，该方案能够准确地识别并且有效的限制LDoS攻击。该方案分为三个模块，异常检测模块、攻击定位模块和攻击限制模块。每个模块都有特定的攻击，只有在一定的条件下激活才能发挥作用。因此，也最大程度的减轻了系统的负担。该方案是基于SDN中流表规则实现的，通过流表规则，SDN控制器能够获取交换机中各种有用的信息。
 
-\subsection{流表规则分析}
+\subsection{SDN中相关流表规则分析}
 \label{chap4:flowruleanalysis}
 
 流表规则是SDN交换机中很重要的部分，所有的经过交换机的数据包都需要经过流表规则进行处理，这些数据包会优先寻找优先级比较高的流表规则进行匹配，这些流表规则可能有很多指令规则，其中比较重要的有两种，一种是将包从端口转发出交换机，另一种是转给交换机内的其他流表规则处理。表\ref{table:flowrule}为流表规则的主要内容。根据需求合理的配置流表规则的参数，能够实现对LDoS攻击的检测与限制。
@@ -88,6 +89,13 @@
 	\end{tabular}
 \end{table}
 
+控制器通过以恒定的速率进行周期性的查询可以获得每个流表规则中计数器的速率。对于不同应用，通过选择合适采样的周期可以尽可能减少控制器的带宽负载的同时也可以尽可能提高服务的质量。本文将每次查询的间隔时间长度标记为$T_s$，将以此采样间隔内的平均速率当做采样时刻的速率，用于不同的服务。公式\ref{eqa:rate}展示了从流表规则的数据中获取流表规则速率的方式。
+
+\begin{equation}
+	\label{eqa:rate}
+	S(t) = \frac{Counter\_bytes(t) - Counter\_bytes(t - T_s)}{T_s}
+\end{equation}
+
 \subsection{总体设计}
 \label{chap4:overview}
 
@@ -106,8 +114,7 @@
 
 异常检测模块首先从所有的数据包中分离出TCP数据包。然后，TCP数据包通过与这些特制的流表规则匹配，统计数据。接下来，再将这些TCP数据包转发给其他正常的流表规则进行处理。这些特制流表的匹配规则的匹配域加入转出端口信息，同时将优先级置为最高，以保证这些流表规则优先匹配数据包以统计TCP流的信息。接下来，特制的流表规则的指令为转发给其他正常流表规则进行处理，保证了这些流表规则只会统计TCP流的信息而不会干扰数据的传输。同时，异常检测模块需要把这些特制流表规则的idle\_timeout和hard\_timeout都设置为0以保证特制流表规则不会被删除，可以持续做数据的统计。
 
-在交换机上安装特制流表规则后，按照算法\ref{alg:detection}
-
+在交换机上安装特制流表规则后，异常检测模块按照算法\ref{alg:detection}检测聚合TCP吞吐量状态，若是聚合tcp吞吐量持续下降，则发现聚合TCP吞吐量下降明显则判断LDoS攻击可能出现，异常检测模块将会激活攻击定位模块来进行更深入精确的检测。算法\ref{alg:detection}展示了检测TCP吞吐量异常的伪代码。输入由吞吐量下降判定阈值$\alpha$和检测所得的序列$S$组成。输出为检测所得的结果$s$。$c$记录吞吐量持续下降的时间。如果$c$超过一个阈值$M$，$s$将会被标记为吞吐量异常，以此表示可能存在的LDoS攻击。同时检测到吞吐量异常的端口将被标记为异常端口。考虑控制器的带宽负载和模块的效率，设置异常检测模块的采样周期$T_s$为0.5秒，每次检测的时间长度为5秒。
 
 \floatname{algorithm}{算法}
 \renewcommand{\algorithmicrequire}{\textbf{输入:}}
@@ -117,12 +124,12 @@
 	\caption{聚合TCP吞吐量异常检测}
 	\label{alg:detection}
 	\begin{algorithmic}[1]%Ã¿ÐÐÏÔÊ¾ÐÐºÅ
-	\Require $\alpha, R$;
+	\Require $\alpha, S$;
 	\Ensure $s$
 	\State $c \gets 0$;
 	\State $s \gets $吞吐量正常;
-	\For{$(i=2 \rightarrow {len(R)})$}
-		\If {$R_{i} < {\alpha} * R_{i - 1}$}
+	\For{$(i=2 \rightarrow {len(S)})$}
+		\If {$S_{i} < {\alpha} * S_{i - 1}$}
 			\State $c \gets c + 1$;
 		\Else 
 			\State $c \gets 0$;
@@ -133,5 +140,52 @@
 	\EndFor
 	\State \Return $s$
 		
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{攻击定位模块}
+\label{chap4:Locator}
+
+在异常检测模块激活了攻击检测模块之后，攻击检测模块对异常检测模块检测出的异常端口进行分析，确认LDoS攻击并识别LDoS攻击流。供给定位模块分为四个步骤。第一步，攻击定位模块对异常端口的总吞吐量进行二值化。第二步，攻击定位模块通过这些二值化后的吞吐量推断出异常端口吞吐量是否存在周期性。如果异常端口吞吐量存在周期性，则供给定位模块将确认异常端口正在被LDoS攻击所影响，因此，本文将确认被LDoS攻击所影响的端口称为受影响端口。攻击定位模块使用算法\ref{alg:port_locate}来确认异常端口是否为受影响端口。第三步，使用序列相似性来识别攻击流，通过平均欧式距离方法来判断攻击流。最后一步，找到攻击流的入口交换机上的端口，并且通知攻击限制模块来限制攻击流。
+
+
+
+
+\subsubsection{吞吐量二值化}
+\label{chap4:binarization}
+通过采样获得的吞吐量序列在进行周期性判断之前需要进行处理。端口统计的数据包除了潜在的LDoS攻击数据包，也可能会包含在其他良性的流量影响周期性的判断。这些良性流量括三类：
+\begin{itemize}
+	\item 不会受到LDoS攻击和网络拥塞影响的UDP流
+	\item LDoS未影响到的TCP流
+	\item 其他经过该端口的更底层的数据流
+\end{itemize}
+这些良性流量不具备周期性，而且速率相较于LDoS的突发速率$R$要小很多。为了减少这些良性流量的影响，同时也为了更加便于提取周期性，攻击定位模块需要对流量进行二值化。攻击定位模块使用了阈值法进行二值化，假设该序列的最大吞吐量的值为$S_m$，设定阈值为$\beta$，则吞吐量序列值中高于$\beta S_m$的地方置为1，吞吐量序列值中低于$\beta S_m$的地方置为0，这样就可以得到二值化序列。
+
+\subsubsection{流量周期性检测}
+为了确认LDoS攻击，异常检测模块需要对吞吐量的二值化序列进行周期性的检测。假设某异常端口有周期为$T_r$的聚合流量，控制器通过对异常端口的数据以周期$T_s$进行采样。
+
+
+\begin{algorithm}[H]
+	\caption{动态搜索受影响的端口}
+	\label{alg:port_locate}
+	\begin{algorithmic}[1]
+		\Require $~{\epsilon}, p$;
+		\Ensure $s, T_s, T$;
+		\State $T_s \gets T_i$;
+		\State $T \gets \infty$; 
+		\While{$T_s \ge T_e$}
+		\State $seq \gets binarized\_sequence(T_s, p)$;
+		\State $T_b \gets period\_mean\_fft(seq)$;
+		\If {$abs(T - T_b * T_s)<\epsilon$}
+		\State $s \gets$ 受影响;
+		\State \Return $s, T_s, T$;
+		\Else
+		\State $T \gets T_b * T_s$;
+		\State $T_s \gets T_s / 2$;
+		\EndIf 
+		\EndWhile
+		\State $s \gets$ 不受影响;
+		\State $T \gets 0$; 
+		\State \Return $s, T_s, T$;
 	\end{algorithmic}
 \end{algorithm}
