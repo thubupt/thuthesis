@@ -1,0 +1,1 @@
+复制fix.cls覆盖thuthesis.cls
