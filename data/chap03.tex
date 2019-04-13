@@ -22,7 +22,7 @@ TCP拥塞控制在TCP协议中实现，在传输层实现。TCP拥塞控制机�
 
 拥塞控制机制并非一成不变的，不同的方案有不同的适应场景，但是，这些方案都遵循着超时重传机制。在网络极其拥塞的情况下，TCP协议的发送端与接收端都收不到数据包，此时为了保证数据稳定的传输，TCP协议的发送端会进入指数退避阶段，将发送窗口改为1，避免网络进一步拥塞。在超时重传机制中，TCP流依靠RTO计时器来不定期探测网络拥塞状况。在TCP协议运行的过程中，RTO计时器中的值是由根据RTT实时计算得到的。
 
-TCP的发送端维持两个两个变量，平滑往返时间（Smoothed Round-Trip Time, SRTT）和往返时间变化量（Round-Trip Time VARiation, RTTVAR）。根据RFC2988\cite{2000Computing}的设定，RTO的实时计算结果与SRTT、RTTVAR两个变量相关。当TCP的发送端与接收端完成一次测量RTT之后，发送端将RTO计时器设置为3秒。
+TCP的发送端维持两个变量，平滑往返时间（Smoothed Round-Trip Time, SRTT）和往返时间变化量（Round-Trip Time VARiation, RTTVAR）。根据RFC2988\cite{2000Computing}的设定，RTO的实时计算结果与SRTT、RTTVAR两个变量相关。当TCP的发送端与接收端完成一次测量RTT之后，发送端将RTO计时器设置为3秒。
 当第一次测量获得的RTT，$R'$,主机设置SRTT = $R'$，RTTVAR = $R' / 2$，RTO = SRTT + max(G, 4RTTVAR)，此处的G被标记为时钟粒度（一般情况下，$\leq$100毫秒）。当获得一个RTT的值$R'$之后，RTTVAR和SRTT的计算公式如下：
 
 
@@ -138,34 +138,63 @@ LDoS攻击形式需要一定的稳定性，不能因为偶尔出现的特殊情�
 
 部署分布式LDoS攻击是需要前提条件的，只有满足了一定条件才能实现分布式攻击。假设多个攻击主机想联合对某条TCP流$f$，则需要这些攻击主机在该TCP流经过的一个交换机$s_r$上的链路$l$进行攻击，则攻击主机的流量需要以一定的规则汇聚到$l$上。所以，攻击主机需要满足两个条件：（1）每个攻击主机都有一条攻击路径经过$l$；（2）所有主机需要计算好时间，使得流量到$l$处时刚好形成LDoS攻击。除此之外，攻击主机还需要发送足够的突发流量来拥塞这个瓶颈链路$l$,还需要设置好攻击周期来避免检测。
 
-在满足了两个条件之后，同步的分布式LDoS攻击就具备了拥塞TCP流的能力。在多个攻击主机上运行的LDoS攻击与单一攻击源的单独流量更低，也存在很多不同的形式，接下来，以两个主机联合攻击来展示迫使TCP流持续保持超时重传状态的分布式LDoS攻击
+在满足了两个条件之后，同步的分布式LDoS攻击就具备了拥塞TCP流的能力。在多个攻击主机上运行的LDoS攻击与单一攻击源的单独流量更低，也存在很多不同的形式，接下来，以两个主机联合攻击来展示迫使TCP流持续保持超时重传状态的分布式LDoS攻击。
 
 
 \begin{figure}
-    \centering
-    \includegraphics[scale=0.75]{lddos2}
-    \caption{分布式LDoS攻击的第一种方案}
-    \label{fig:lldos1}
+    \vspace{-0.2in}
+    \begin{subfigure}{1\textwidth}
+        \centering
+        \includegraphics[scale=0.75]{lddos2}
+        \caption{方案一}
+        \label{fig:lldos1}
+    \end{subfigure}
+
+    \begin{subfigure}{1\textwidth}
+        \centering
+        \includegraphics[scale=0.75]{lddos3}
+        \caption{方案二}
+        \label{fig:lldos2}
+    \end{subfigure}
+
+    \begin{subfigure}{1\textwidth}
+        \centering
+        \includegraphics[scale=0.75]{lddos1}
+        \caption{方案三}
+        \label{fig:lldos3}
+    \end{subfigure}
+
+
+    \caption{分布式LDoS攻击}
+    \label{ffig:lldos}
 \end{figure}
-图\ref{fig:lldos1}为第一个可行方案，将该方案的两个流聚合，就可以得到一个参数为($R$，$L$,$T$的LDoS。首先对第一种方案进行分析，假设攻击者1在零时刻发动了突发速率为$R$，周期为$2T$，每次突发持续时间为$L$的LDoS攻击，则TCP流$f$由于攻击进入超时重传状态。每次$t$ = 2i * T（i=0，1，2…）时刻的$f$可能出现的ACK数据包由于攻击者1的攻击流的拥塞而丢弃。攻击者2需要在$T$时刻发动突发速率为$R$，周期为$2T$，每次突发持续时间为$L$的LDoS攻击，则每次$t$ = (2i + 1) * T（i=0，1，2…）时刻的$f$可能出现的ACK数据包由于攻击者2的攻击流的拥塞而丢弃。至此，由于两个攻击者的拥塞，TCP流$f$的所有可能接受的的ACK报都丢失了，因此，该TCP流持续保持超时重传状态。
 
-\begin{figure}
-    \centering
-    \includegraphics[scale=0.75]{lddos3}
-    \caption{分布式LDoS攻击的第二种方案}
-    \label{fig:lldos2}
-\end{figure}
 
-图\ref{fig:lldos2}为第二种可行方案。攻击者1在零时刻发动突发速率为$R/2$，周期为$T$，每次突发持续时间为$L$的LDoS攻击，若是只有攻击者1，则由于攻击突发速率不足，不能使队列拥塞并造成TCP流的丢包，所以，需要攻击者2余攻击者1在零时刻同步发动突发速率为$R/2$，周期为$T$，每次突发持续时间为$L$的LDoS攻击，攻击突发速率足够，因此，交换机的队列拥塞造成TCP流的包完全丢失，最终持续进入超时重传状态。
+% \begin{figure}
+%     \centering
+%     \includegraphics[scale=0.75]{lddos2}
+%     \caption{分布式LDoS攻击的第一种方案}
+%     \label{fig:lldos1}
+% \end{figure}
+图\ref{fig:lldos1}为分布式方案一，将该方案的两个流聚合，就可以得到一个参数为($R$，$L$,$T$的LDoS。首先对第一种方案进行分析，假设攻击者1在零时刻发动了突发速率为$R$，周期为$2T$，每次突发持续时间为$L$的LDoS攻击，则TCP流$f$由于攻击进入超时重传状态。每次$t$ = 2i * T（i=0，1，2…）时刻的$f$可能出现的ACK数据包由于攻击者1的攻击流的拥塞而丢弃。攻击者2需要在$T$时刻发动突发速率为$R$，周期为$2T$，每次突发持续时间为$L$的LDoS攻击，则每次$t$ = (2i + 1) * T（i=0，1，2…）时刻的$f$可能出现的ACK数据包由于攻击者2的攻击流的拥塞而丢弃。至此，由于两个攻击者的拥塞，TCP流$f$的所有可能接受的的ACK报都丢失了，因此，该TCP流持续保持超时重传状态。
 
-\begin{figure}
-    \centering
-    \includegraphics[scale=1=0.75]{lddos1}
-    \caption{分布式LDoS攻击的第三种方案}
-    \label{fig:lldos3}
-\end{figure}
+% \begin{figure}
+%     \centering
+%     \includegraphics[scale=0.75]{lddos3}
+%     \caption{分布式LDoS攻击的第二种方案}
+%     \label{fig:lldos2}
+% \end{figure}
 
-图\ref{fig:lldos3}为第三种可行方案。攻击者1在零时刻发动突发速率为$R$，周期为$T$，每次突发持续时间为$L/2$的LDoS攻击。若只有攻击者1的攻击，则由于突发持续时间不足，导致TCP流的ACK包可以为TCP发送端接收到，无法迫使TCP流进入超时重传状态。因此，需要攻击者2在$L/2$时刻，也发动突发速率为$R$，周期为$T$，每次突发持续时间为$L/2$的LDoS攻击。由于攻击者2的攻击在攻击者1结束的时候刚好出现，因此，延续了攻击者1的LDoS攻击的效果，TCP流的ACK包由于攻击者2的拥塞而丢失，所以该TCP流被迫进入超时重传机制。
+图\ref{fig:lldos2}为分布式方案二。攻击者1在零时刻发动突发速率为$R/2$，周期为$T$，每次突发持续时间为$L$的LDoS攻击，若是只有攻击者1，则由于攻击突发速率不足，不能使队列拥塞并造成TCP流的丢包，所以，需要攻击者2余攻击者1在零时刻同步发动突发速率为$R/2$，周期为$T$，每次突发持续时间为$L$的LDoS攻击，攻击突发速率足够，因此，交换机的队列拥塞造成TCP流的包完全丢失，最终持续进入超时重传状态。
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[scale=1=0.75]{lddos1}
+%     \caption{分布式LDoS攻击的第三种方案}
+%     \label{fig:lldos3}
+% \end{figure}
+
+图\ref{fig:lldos3}为分布式方案三。攻击者1在零时刻发动突发速率为$R$，周期为$T$，每次突发持续时间为$L/2$的LDoS攻击。若只有攻击者1的攻击，则由于突发持续时间不足，导致TCP流的ACK包可以为TCP发送端接收到，无法迫使TCP流进入超时重传状态。因此，需要攻击者2在$L/2$时刻，也发动突发速率为$R$，周期为$T$，每次突发持续时间为$L/2$的LDoS攻击。由于攻击者2的攻击在攻击者1结束的时候刚好出现，因此，延续了攻击者1的LDoS攻击的效果，TCP流的ACK包由于攻击者2的拥塞而丢失，所以该TCP流被迫进入超时重传机制。
 
 以上三种方案分别在突发持续时间、突发峰值速率、突发周期上进行了分布式探索，三种方案都能够迫使TCP流保持超时重传状态，而且每个攻击主机都平均攻击速率相较于单一主机都有所下降，这样更易于逃避DoS防御机制的检测。
 
