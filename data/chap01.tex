@@ -48,7 +48,7 @@ LDoS攻击对基于TCP协议发展起来的应用有非常大的影响，包括�
 因此，由LDoS攻击引起的安全问题也受到了重视。目前，为了有效的防御LDoS攻击，很多相应的对抗方案已经被提出来。大部分的解决方案\cite{b1,b4, b6, b7, b22}通过使用数字信号处理（Digital Signal Processing, DSP）技术来提取频域特征。只有采集数据流的周期合适的情况下，这样的特征才能够很好的提取特征。然而，现行的方案都是采用一个固定的采样周期，来检测攻击流，这样会导致一些具有短周期的LDoS攻击流无法被检测出来。除此之外，这些方案都没有考虑如何限制被识别的攻击流。有一些方案采用被动的防御方案来缓解LDoS攻击，不过，这些方案都没有识别攻击流，这些方案包括在主机上对TCP协议栈的RTO进行随机化\cite{b17}和修改交换机上丢包机制的公平性规则\cite{b8}。因为这样的修改涉及到用户的网络协议栈或者交换机上面的硬件，所以这样的被动防御方案很难部署在大量的交换机上面。
 %To effectively defend against the attack, several countermeasures have been proposed. Most defense solutions~\cite{b1,b4, b6, b7, b22} identify the attack flows by applying digital signal processing (DSP) techniques to extract frequency-domain characteristics. Such characteristics can only be well depicted when a proper sampling period of collecting flow statistics is set. However, existing methods apply a fixed sampling period, which may fail to detect attack flows with short periods. Besides, they do not consider how to throttle the identified flows. A few countermeasures adapt passive methods to mitigate the low-rate TCP attack without identifying attack flows, such as randomizing RTO of the TCP protocol stack in hosts\cite{b17} and modifying the fairness mechanism of dropping packets in the switches \cite{b8}. The passive defense solutions are not easy to be deployed in practice due to the modification of the network protocol stack in hosts or hardware in switches.
 
-进来，软件定义网络（Software-Defined Networking, SDN）作为一个很有潜力的新型网络出现，改变了现行的网络架构的限制。首先，SDN网络将网络的控制平面从下层的路由器和交换机中分离出来，这样下层的交换机只需要负责数据平面，即转发数据流。其次，通过将数据平面和控制平面分离，SDN将控制逻辑放在中心控制器上，而交换机则负责数据的转发，这能够较为简单的配置网络和执行新的网络策略。而且，由于交换机只要与控制器完成连接，就可以接入已有网络并且不需要重复配置就能够执行统一的策略。
+进来，软件定义网络（Software-Defined Networking, SDN）作为一个很有潜力的新型网络范式出现，改变了现行的网络架构的限制。首先，SDN网络将网络的控制平面从下层的路由器和交换机中分离出来，这样下层的交换机只需要负责数据平面，即转发数据流。其次，通过将数据平面和控制平面分离，SDN将控制逻辑放在中心控制器上，而交换机则负责数据的转发，这能够较为简单的配置网络和执行新的网络策略。而且，由于交换机只要与控制器完成连接，就可以接入已有网络并且不需要重复配置就能够执行统一的策略。
 
 
 
@@ -91,7 +91,7 @@ LDoS攻击防御的问题还是需要去研究的。因为，在之前的工作�
 
 第\ref{cha:relatedWork}章的内容为相关研究介绍，对目前LDoS攻击的相关防御工作的典型性方法进行分析，同时对SDN中DoS攻击的相关防御工作进行讨论。
 
-第\ref{cha:LDoS}章主要介绍LDoS攻击的原理，分析LDoS攻击的特征，并且对LDoS的各种种类展开分析，最后对低速率分布式服务拒绝攻击（Low-rate Distributed Denial of Service, LDDoS）的模式进行讨论。
+第\ref{cha:LDoS}章主要介绍LDoS攻击的原理，分析LDoS攻击的特征，并且对LDoS的各种种类展开分析，最后对低速率分布式服务拒绝（Low-rate Distributed Denial of Service, LDDoS）攻击的模式进行讨论。
 
 第\ref{cha:design}章的主要内容为防御系统的设计，主要是实现两个策略，即带宽保障策略与LDoS攻击流限制策略。系统性分析两种策略的设计思想与对应的场景。
 
