@@ -20,22 +20,22 @@ TCP协议是保证数据可靠的协议。对于任何基于TCP协议的数据�
 2017年由Cardwell.N\cite{Cardwell2017BBR}提出的TCP BBR版本，该算法在谷歌使用之后，极大的提升了数据传输性能。该算法认为当网络中的数据包总量高于网络中可存放数据包总量的时候会产生拥塞，就会限制窗口，因此，在带宽高、延迟高还有一定丢包率的情况下，降低时延并且保证带宽。
 此外，2013年由Winstein.K\cite{Winstein2013Remy}提出的Remy算法采用机器学习的方式生成拥塞控制形式。因此，该算法适用于复杂的网络环境。
 
-拥塞控制机制并非一成不变的，不同的方案有不同的适应场景，但是，这些方案都遵循着超时重传机制。在网络极其拥塞的情况下，TCP协议的发送端与接收端都收不到数据包，此时为了保证数据稳定的传输，TCP协议的发送端会进入指数退避阶段，将发送窗口改为1，避免网络进一步拥塞。在超时重传机制中，TCP流依靠RTO计时器来不定期探测网络拥塞状况。在TCP协议运行的过程中，RTO计时器中的值是由根据RTT实时计算得到的。
+拥塞控制机制并非一成不变的，不同的方案有不同的适应场景，但是，这些方案都遵循着超时重传机制。在网络极其拥塞的情况下，TCP协议的发送端与接收端都收不到数据包，此时为了保证数据稳定的传输，TCP协议的发送端会进入指数退避阶段，将发送窗口改为1，避免网络进一步拥塞。在超时重传机制中，TCP流依靠RTO计时器来不定期探测网络拥塞状况。在TCP协议运行的过程中，RTO计时器中的值是由根据往返时间（Round-Trip Time，RTT）实时计算得到的。
 
 TCP的发送端维持两个变量，平滑往返时间（Smoothed Round-Trip Time, SRTT）和往返时间变化量（Round-Trip Time VARiation, RTTVAR）。根据RFC2988\cite{2000Computing}的设定，RTO的实时计算结果与SRTT、RTTVAR两个变量相关。当TCP的发送端与接收端完成一次测量RTT之后，发送端将RTO计时器设置为3秒。
 当第一次测量获得的RTT，记为$R'$,主机设置SRTT = $R'$，RTTVAR = $R' / 2$，RTO = SRTT + max(G, 4RTTVAR)，此处的G被标记为时钟粒度（一般情况下，$\leq$100毫秒）。当获得一个RTT的值$R'$之后，RTTVAR和SRTT的计算公式如下：
 %记为
 
 \begin{center}
-    RTTVAR = (1 - $\beta$) RTTVAR + $\beta$ |SRTT - $R'$|
+    RTTVAR = (1 - $\beta '$) RTTVAR + $\beta '$ |SRTT - $R'$|
 \vspace{-0.1in}
 \end{center}
 
 \begin{center}
-    SRTT = (1 - $\alpha$) SRTT + $\alpha R'$
+    SRTT = (1 - $\alpha '$) SRTT + $\alpha ' R'$
 \end{center}
 
-其中，有文献\cite{Jacobson1988Congestion}推荐设置$\alpha$ = 1/8， $\beta$ = 1/4。
+其中，有文献\cite{Jacobson1988Congestion}推荐设置$\alpha '$ = 1/8， $\beta '$ = 1/4。
 
 
 通过对RTTVAR和SRTT进行更新之后，TCP发送端RTO的计算公式如下：
