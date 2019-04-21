@@ -6,7 +6,7 @@
 \label{chap4:keyanalysis}
 前文已经对LDoS攻击的攻击形式进行了说明，本文首先分析单攻击源的LDoS攻击实现的关键点并找到合适的防御机制。LDoS攻击的核心思想就是通过周期性的引发TCP流丢包，触发TCP拥塞控制机制或者超时重传机制降低TCP流的吞吐量，最后达到以极低的流量使TCP流异常的目标。因此，本文防御LDoS有两种核心思想，第一种是采取措施使TCP流不丢包，第二种是找到并限制攻击源。
 
-第一种思想是采取措施使得TCP流不丢包。通过前文可知，TCP流的丢包是由于LDoS的速率太高拥塞队列导致的。所以，只要交换机保护TCP流的最低通信需求，则TCP不会因为收不到任何包而进入超时重传状态。在SDN网络中，带宽保障可以通过SDN中特有的meter规则去实现，使用meter规则限制其他流的最高速率从而给TCP流提供有最低速率保障，则LDoS无法通过拥塞队列强迫TCP流完全丢包。从而达到防御LDoS攻击的效果。但是，这样的做法在LDoS攻击的突发到达的时候，速率依然会降得很低，而拥塞窗口也会相应的减小，因此，这种思想只能减轻攻击所造成的危害，但是不能完全消除LDoS攻击对TCP流的影响。
+第一种思想是采取措施使得TCP流不丢包。通过前文可知，TCP流的丢包是由于LDoS的速率太高拥塞队列导致的。所以，只要交换机保护TCP流的最低通信需求，则TCP不会因为收不到任何包而进入超时重传状态。在SDN网络中，带宽保障可以通过SDN中特有的Meter规则去实现，使用Meter规则限制其他流的最高速率从而给TCP流提供有最低速率保障，则LDoS无法通过拥塞队列强迫TCP流完全丢包。从而达到防御LDoS攻击的效果。但是，这样的做法在LDoS攻击的突发到达的时候，速率依然会降得很低，而拥塞窗口也会相应的减小，因此，这种思想只能减轻攻击所造成的危害，但是不能完全消除LDoS攻击对TCP流的影响。
 
 第二种思想是找到并且限制攻击源。在SDN网络中，所有的数据转发都是由流表规则匹配完成的，因此，在SDN中可以实现流级别的数据分析。由于LDoS攻击拥塞了某个交换机的队列才能实现攻击，因此，可以在交换机的端口处检测LDoS是否存在。LDoS攻击作为一个周期性的“方波”是能够由周期性来确认的，因此，在端口处只要能够确认有周期性的吞吐量变化，就能够确认攻击，再之后通过流级别的分析判断攻击流，最后，再对判断出来的攻击流的攻击源进行限制。使用这种思想来防御LDoS攻击就能够完全消除LDoS攻击流对TCP流的影响，但是，在攻击开始的时候TCP流会受到一定的影响，可能会出现部分TCP流进入超时重传状态，影响吞吐量。
 
@@ -31,7 +31,7 @@
 	\end{tabular}
 \end{table}
 %英文斜体字？
-表\ref{table:meter}为SDN的Meter规则的主要内容。Meter Identifier是一个32比特的无符号整数，它能够用于唯一标识一个Meter规则。counters是统计与meter绑定的流表规则的统计相关数据，随时更新。其中，最重要的是Meter Bands，它是Meter规则控制和限制绑定聚合流的速率和处理包方式的部分。需要注意的是，每个Meter规则可以匹配多个Meter Band。表\ref{table:meterbands}为一个Meter Band部分，它由五个部分组成，首先是Band Type部分，这直接定义了速率超过限定速率以后，后面的包是如何处理的。此处有两种选项：一种为\emph{drop}，这样它该Meter规则就可以被用来限制速率；另一种为\emph{dscp remark}，这样就能增加数据包IP头中DSCP字段的丢弃优先级，可用于定义不同级别的服务。第二个参数是Meter规则限制的速率，它定义Meter规则最低适用的速率，若是速率高于该参数的数据包则需要根据Meter规则进行处理。Counters表示被该Meter Band处理的包的统计数据。Burst参数是本文需要调的一个重要参数，该参数定义了Meter Band的粒度。Type specific arguments表示band types有特殊的参数。
+表\ref{table:meter}为SDN的Meter规则的主要内容。Meter Identifier是一个32比特的无符号整数，它能够用于唯一标识一个Meter规则。counters是统计与Meter规则绑定的流表规则的统计相关数据，随时更新。其中，最重要的是Meter Bands，它是Meter规则控制和限制绑定聚合流的速率和处理包方式的部分。需要注意的是，每个Meter规则可以匹配多个Meter Band。表\ref{table:meterbands}为一个Meter Band部分，它由五个部分组成，首先是Band Type部分，这直接定义了速率超过限定速率以后，后面的包是如何处理的。此处有两种选项：一种为\emph{drop}，这样它该Meter规则就可以被用来限制速率；另一种为\emph{dscp remark}，这样就能增加数据包IP头中DSCP字段的丢弃优先级，可用于定义不同级别的服务。第二个参数是Meter规则限制的速率，它定义Meter规则最低适用的速率，若是速率高于该参数的数据包则需要根据Meter规则进行处理。Counters表示被该Meter Band处理的包的统计数据。Burst参数是本文需要调的一个重要参数，该参数定义了Meter Band的粒度。Type specific arguments表示band types有特殊的参数。
 
 \begin{table}[htbp]
 	\centering  % 显示位置为中间
@@ -104,7 +104,7 @@
 \begin{figure}
     \centering
     \includegraphics[scale=0.75]{architecture}
-    \caption{基于带宽保障的LDoS防御方案流程图}
+    \caption{基于动态周期性检测的LDoS防御方案框架}
     \label{fig:architecture}
 \end{figure}
 
