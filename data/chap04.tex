@@ -94,8 +94,8 @@
 
 控制器通过以恒定的速率进行周期性地查询，可以获得每个流表规则中计数器的速率。对于不同应用，通过选择合适的采样周期可以尽可能减少控制器的带宽负载，同时也可以尽可能提高服务的质量。本文将每次查询的间隔时间长度标记为$T_s$，将以此采样间隔内的平均速率当做采样时刻的速率，用于不同的服务。公式\ref{eqa:rate}展示了从流表规则的数据中获取流表规则速率的方式。
 
-\begin{equation}
-	\vspace{-0.1in}
+\vspace{-0.15in}
+\begin{equation}	
 	\label{eqa:rate}
 	S(t) = \frac{Counter\_bytes(t) - Counter\_bytes(t - T_s)}{T_s}
 \end{equation}
